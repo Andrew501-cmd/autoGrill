@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "logo.h"
+#include "font.h"
+#include "ssd1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -99,10 +101,11 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  /*ssd1306_Init();
+  ssd1306_Init();
   ssd1306_Fill(Black);
-  ssd1306_DrawBitmap(40, 8, logo, 48, 48, White);
-  ssd1306_UpdateScreen();*/
+  //ssd1306_DrawBitmap(40, 8, logo, 48, 48, White);
+  ssd1306_WriteString("Привет", Font_7x11, White);
+  ssd1306_UpdateScreen();
 
 
   /* USER CODE END 2 */

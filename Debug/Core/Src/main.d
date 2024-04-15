@@ -39,7 +39,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- ../Core/Inc/logo.h ../Core/Inc/font.h ../Core/Inc/ssd1306_fonts.h \
+ ../Core/Inc/logo.h ../Core/Inc/ruFonts.h ../Core/Inc/ssd1306_fonts.h \
  ../Core/Inc/ssd1306_conf.h ../Core/Inc/ssd1306.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
@@ -83,7 +83,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 ../Core/Inc/logo.h:
-../Core/Inc/font.h:
+../Core/Inc/ruFonts.h:
 ../Core/Inc/ssd1306_fonts.h:
 ../Core/Inc/ssd1306_conf.h:
 ../Core/Inc/ssd1306.h:

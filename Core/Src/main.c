@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "logo.h"
-#include "font.h"
+#include "ruFonts.h"
 #include "ssd1306.h"
 /* USER CODE END Includes */
 
@@ -103,10 +103,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ssd1306_Init();
   ssd1306_Fill(Black);
-  //ssd1306_DrawBitmap(40, 8, logo, 48, 48, White);
-  ssd1306_WriteString("Привет", Font_7x11, White);
+  ssd1306_DrawBitmap(43, 2, logo, 42, 42, White);
+  ssd1306_SetCursor(11, 46);
+  ssd1306_WriteString("АвтоШашлык V0.1", RuFont_7x13, White);
   ssd1306_UpdateScreen();
-
+  HAL_Delay(2000);
 
   /* USER CODE END 2 */
 
@@ -353,22 +354,89 @@ void StartReadKeyTask(void const * argument)
 void StartGuiTask(void const * argument)
 {
   /* USER CODE BEGIN StartGuiTask */
-
   osEvent btnEvent;
   uint8_t guiState = 0;
+  uint8_t selectedMode = 0;
   /* Infinite loop */
+
   for(;;)
   {
-	switch (guiState) {
-		case 0:
+      btnEvent = osMessageGet(buttonPressedQueueHandle, 100);
+      switch (guiState) {
+	case 0: // mode select
+	  ssd1306_Fill(Black);
+	  ssd1306_DrawRectangle(0, 0, 127, 63, White);
+	  ssd1306_SetCursor(1,1);
+	  ssd1306_WriteString("Выбор режима", RuFont_7x13, Black);
+	  if (selectedMode == 0) {
+	    ssd1306_SetCursor(4,16);
+	    ssd1306_WriteString("> Постоянный", RuFont_7x13, White);
+	    ssd1306_SetCursor(4,30);
+	    ssd1306_WriteString("  Прерывистый", RuFont_7x13, White);
+	  } else if (selectedMode == 1) {
+	    ssd1306_SetCursor(4,16);
+	    ssd1306_WriteString("  Постоянный", RuFont_7x13, White);
+	    ssd1306_SetCursor(4,30);
+	    ssd1306_WriteString("> Прерывистый", RuFont_7x13, White);
+	  }
+	  if (btnEvent.status == osEventMessage)
+	  {
+	    if (btnEvent.value.v == 0 || btnEvent.value.v == 1)
+	    { //bottom or top
+	      selectedMode = !selectedMode;
+	    } else if (btnEvent.value.v == 4)
+	    { //ok
+	      if (selectedMode == 0)
+	      {
+		  guiState = 1;
+	      } else if (selectedMode == 1)
+	      {
+		  guiState = 2;
+	      }
+	    }
+	  }
+	  break;
+	case 1:
+	  ssd1306_Fill(Black);
+	  ssd1306_DrawRectangle(0, 0, 127, 63, White);
+	  ssd1306_SetCursor(1,1);
+	  ssd1306_WriteString("Постоянный реж.", RuFont_7x13, Black);
+	  if (btnEvent.status == osEventMessage)
+	  {
+	    if (btnEvent.value.v == 0 || btnEvent.value.v == 1)
+	    { //bottom or top
 
-			//guiState = 1;
-			break;
+	    } else if (btnEvent.value.v == 4)
+	    { //ok
+
+	    } else if (btnEvent.value.v == 5)
+	    { //cancel
+		guiState = 0;
+	    }
+	  }
+	  break;
+	case 2:
+	  ssd1306_Fill(Black);
+	  ssd1306_DrawRectangle(0, 0, 127, 63, White);
+	  ssd1306_SetCursor(1,1);
+	  ssd1306_WriteString("Прерывистый реж.", RuFont_7x13, Black);
+	  if (btnEvent.status == osEventMessage)
+	  {
+	    if (btnEvent.value.v == 0 || btnEvent.value.v == 1)
+	    { //bottom or top
+
+	    } else if (btnEvent.value.v == 4)
+	    { //ok
+
+	    } else if (btnEvent.value.v == 5)
+	    { //cancel
+		guiState = 0;
+	    }
+	  }
+	  break;
 
 	}
 
-
-	btnEvent = osMessageGet(buttonPressedQueueHandle, 100);
 	if (btnEvent.status == osEventMessage)
 	{
 		if (btnEvent.value.v == 0) { //bottom
@@ -402,9 +470,8 @@ void StartGuiTask(void const * argument)
 		}
 	}
 
-	//отрисовывать дисплей здесь!!!
-	//ssd1306_UpdateScreen();
-	osDelay(30);// подсичтано под нужный FPS
+	ssd1306_UpdateScreen();
+	osDelay(30);//
   }
   /* USER CODE END StartGuiTask */
 }

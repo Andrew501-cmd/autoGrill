@@ -25,6 +25,7 @@
 #include "logo.h"
 #include "ruFonts.h"
 #include "ssd1306.h"
+#include "time.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +50,7 @@ osThreadId readKeyTaskHandle;
 osThreadId guiTaskHandle;
 osMessageQId buttonPressedQueueHandle;
 osTimerId cancelButtonHandle;
+osTimerId screenTimeoutTimerHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -60,6 +62,7 @@ static void MX_I2C1_Init(void);
 void StartReadKeyTask(void const * argument);
 void StartGuiTask(void const * argument);
 void cancelButtonCallback(void const * argument);
+void screenTimeoutCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -107,7 +110,7 @@ int main(void)
   ssd1306_SetCursor(11, 46);
   ssd1306_WriteString("АвтоШашлык V0.1", RuFont_7x13, White);
   ssd1306_UpdateScreen();
-  HAL_Delay(2000);
+  //HAL_Delay(2000);
 
   /* USER CODE END 2 */
 
@@ -123,6 +126,10 @@ int main(void)
   /* definition and creation of cancelButton */
   osTimerDef(cancelButton, cancelButtonCallback);
   cancelButtonHandle = osTimerCreate(osTimer(cancelButton), osTimerOnce, NULL);
+
+  /* definition and creation of screenTimeoutTimer */
+  osTimerDef(screenTimeoutTimer, screenTimeoutCallback);
+  screenTimeoutTimerHandle = osTimerCreate(osTimer(screenTimeoutTimer), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -295,48 +302,56 @@ static void MX_GPIO_Init(void)
 void StartReadKeyTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+  #define SCREEN_TIMEOUT 3000
+  osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
   /* Infinite loop */
   for(;;)
   {
 
 	if (HAL_GPIO_ReadPin(btn_bottom_GPIO_Port, btn_bottom_Pin) == 0) {
-		osMessagePut(buttonPressedQueueHandle, 0, 100);
-		while(HAL_GPIO_ReadPin(btn_bottom_GPIO_Port, btn_bottom_Pin) == 0)
-		{
-			osDelay(1);
-		}
+	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 0, 100); else ssd1306_SetDisplayOn(1);
+	    while(HAL_GPIO_ReadPin(btn_bottom_GPIO_Port, btn_bottom_Pin) == 0)
+	    {
+		    osDelay(1);
+	    }
+	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_top_GPIO_Port, btn_top_Pin) == 0) {
-		osMessagePut(buttonPressedQueueHandle, 1, 100);
-		while(HAL_GPIO_ReadPin(btn_top_GPIO_Port, btn_top_Pin) == 0)
-		{
-			osDelay(1);
-		}
+	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 1, 100); else ssd1306_SetDisplayOn(1);
+	    while(HAL_GPIO_ReadPin(btn_top_GPIO_Port, btn_top_Pin) == 0)
+	    {
+		    osDelay(1);
+	    }
+	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin) == 0) {
-		osMessagePut(buttonPressedQueueHandle, 2, 100);
-		while(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin) == 0)
-		{
-			osDelay(1);
-		}
+	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 2, 100); else ssd1306_SetDisplayOn(1);
+	    while(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin) == 0)
+	    {
+		    osDelay(1);
+	    }
+	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin) == 0) {
-		osMessagePut(buttonPressedQueueHandle, 3, 100);
-		while(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin) == 0)
-		{
-			osDelay(1);
-		}
+	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 3, 100); else ssd1306_SetDisplayOn(1);
+	    while(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin) == 0)
+	    {
+		    osDelay(1);
+	    }
+	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_ok_GPIO_Port, btn_ok_Pin) == 0) {
-		osTimerStart(cancelButtonHandle, 1000);
-		while(HAL_GPIO_ReadPin(btn_ok_GPIO_Port, btn_ok_Pin) == 0)
-		{
-			osDelay(1);
-		}
-		if (xTimerIsTimerActive(cancelButtonHandle) != pdFALSE) {
-			osMessagePut(buttonPressedQueueHandle, 4, 100); //short press
-		}
-		osTimerStop(cancelButtonHandle);
+	    osTimerStart(cancelButtonHandle, 1000);
+	    while(HAL_GPIO_ReadPin(btn_ok_GPIO_Port, btn_ok_Pin) == 0)
+	    {
+		    osDelay(1);
+	    }
+	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
+	    if (xTimerIsTimerActive(cancelButtonHandle) != pdFALSE) {
+		if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 4, 100); else ssd1306_SetDisplayOn(1);
+		//short press
+	    }
+	    osTimerStop(cancelButtonHandle);
 	}
 
     osDelay(50);
@@ -357,6 +372,10 @@ void StartGuiTask(void const * argument)
   osEvent btnEvent;
   uint8_t guiState = 0;
   uint8_t selectedMode = 0;
+  uint8_t intermittentModeMenuPointer = 0;
+  uint8_t speed = 5;
+  uint8_t sleep = 60;
+  uint8_t corner = 45;
   /* Infinite loop */
 
   for(;;)
@@ -401,15 +420,37 @@ void StartGuiTask(void const * argument)
 	  ssd1306_DrawRectangle(0, 0, 127, 63, White);
 	  ssd1306_SetCursor(1,1);
 	  ssd1306_WriteString("Постоянный реж.", RuFont_7x13, Black);
+	  ssd1306_SetCursor(4,16);
+	  ssd1306_WriteString("> Скорость: ", RuFont_7x13, White);
+	  ssd1306_SetCursor(88,16);
+	  char speedStr[3];
+	  sprintf(speedStr, "%d", speed);
+	  ssd1306_WriteString(speedStr, RuFont_7x13, White);
 	  if (btnEvent.status == osEventMessage)
 	  {
-	    if (btnEvent.value.v == 0 || btnEvent.value.v == 1)
-	    { //bottom or top
+	    if (btnEvent.value.v == 2)
+	    { //left
+		if(speed == 1)
+		{
+		  speed = 10;
+		}
+		else
+		{
+		  speed--;
+		}
 
-	    } else if (btnEvent.value.v == 4)
-	    { //ok
-
-	    } else if (btnEvent.value.v == 5)
+	    } else if ( btnEvent.value.v == 3)
+	      {//right
+		if(speed == 10)
+		{
+		  speed = 1;
+		}
+		else
+		{
+		  speed++;
+		}
+	      }
+	      else if (btnEvent.value.v == 5)
 	    { //cancel
 		guiState = 0;
 	    }
@@ -420,15 +461,75 @@ void StartGuiTask(void const * argument)
 	  ssd1306_DrawRectangle(0, 0, 127, 63, White);
 	  ssd1306_SetCursor(1,1);
 	  ssd1306_WriteString("Прерывистый реж.", RuFont_7x13, Black);
+	  if(intermittentModeMenuPointer == 0)
+	   {
+	      ssd1306_SetCursor(4,16);
+	      ssd1306_WriteString("> Задержка: ", RuFont_7x13, White);
+	      ssd1306_SetCursor(88,16);
+	      char sleepStr[3];
+	      sprintf(sleepStr, "%d", sleep);
+	      ssd1306_WriteString(sleepStr, RuFont_7x13, White);
+	      ssd1306_SetCursor(4,30);
+	      ssd1306_WriteString("  Угол: ", RuFont_7x13, White);
+	      ssd1306_SetCursor(56, 30);
+	      char cornerStr[3];
+	      sprintf(cornerStr, "%d", corner);
+	      ssd1306_WriteString(cornerStr, RuFont_7x13, White);
+	   }
+	  else if(intermittentModeMenuPointer == 1)
+	  {
+	      ssd1306_SetCursor(4,16);
+	      ssd1306_WriteString("  Задержка: ", RuFont_7x13, White);
+	      ssd1306_SetCursor(88,16);
+	      char sleepStr[3];
+	      sprintf(sleepStr, "%d", sleep);
+	      ssd1306_WriteString(sleepStr, RuFont_7x13, White);
+	      ssd1306_SetCursor(4,30);
+	      ssd1306_WriteString("> Угол: ", RuFont_7x13, White);
+	      ssd1306_SetCursor(56, 30);
+	      char cornerStr[3];
+	      sprintf(cornerStr, "%d", corner);
+	      ssd1306_WriteString(cornerStr, RuFont_7x13, White);
+	  }
 	  if (btnEvent.status == osEventMessage)
 	  {
 	    if (btnEvent.value.v == 0 || btnEvent.value.v == 1)
 	    { //bottom or top
-
-	    } else if (btnEvent.value.v == 4)
-	    { //ok
-
-	    } else if (btnEvent.value.v == 5)
+		intermittentModeMenuPointer = !intermittentModeMenuPointer;
+	    } else if (btnEvent.value.v == 3)
+	    {//right
+		if(intermittentModeMenuPointer == 0)
+		  {
+		    if(sleep == 250)
+		      sleep = 10;
+		    else
+		      sleep+=10;
+		  }
+		else if(intermittentModeMenuPointer == 1)
+		  {
+		    if(corner == 45)
+			corner = 90;
+		    else if(corner == 90)
+		      corner = 45;
+		  }
+	    } else if (btnEvent.value.v == 2)
+	      { //left
+		if(intermittentModeMenuPointer == 0)
+		  {
+		    if(sleep == 10)
+		      sleep = 250;
+		    else
+		      sleep-=10;
+		  }
+		else if(intermittentModeMenuPointer == 1)
+		  {
+		    if(corner == 45)
+			corner = 90;
+		    else if(corner == 90)
+		      corner = 45;
+		  }
+	      }
+	    else if (btnEvent.value.v == 5)
 	    { //cancel
 		guiState = 0;
 	    }
@@ -480,8 +581,16 @@ void StartGuiTask(void const * argument)
 void cancelButtonCallback(void const * argument)
 {
   /* USER CODE BEGIN cancelButtonCallback */
-	osMessagePut(buttonPressedQueueHandle, 5, 100);
+  if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 5, 100); else ssd1306_SetDisplayOn(1);
   /* USER CODE END cancelButtonCallback */
+}
+
+/* screenTimeoutCallback function */
+void screenTimeoutCallback(void const * argument)
+{
+  /* USER CODE BEGIN screenTimeoutCallback */
+  //ssd1306_SetDisplayOn(0);
+  /* USER CODE END screenTimeoutCallback */
 }
 
 /**

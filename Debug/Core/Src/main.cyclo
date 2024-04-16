@@ -1,8 +1,7 @@
-../Core/Src/main.c:77:5:main	1
-../Core/Src/main.c:173:6:SystemClock_Config	3
-../Core/Src/main.c:213:13:MX_I2C1_Init	2
-../Core/Src/main.c:247:13:MX_GPIO_Init	1
-../Core/Src/main.c:295:6:StartReadKeyTask	12
-../Core/Src/main.c:354:6:StartGuiTask	30
-../Core/Src/main.c:480:6:cancelButtonCallback	1
-../Core/Src/main.c:491:6:Error_Handler	1
+../Core/Src/main.c:589:6:screenTimeoutCallback	1
+../Core/Src/main.c:302:6:StartReadKeyTask	17
+../Core/Src/main.c:369:6:StartGuiTask	29
+../Core/Src/main.c:581:6:cancelButtonCallback	2
+../Core/Src/main.c:180:6:SystemClock_Config	3
+../Core/Src/main.c:80:5:main	2
+../Core/Src/main.c:600:6:Error_Handler	1

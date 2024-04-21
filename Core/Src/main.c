@@ -19,13 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "logo.h"
 #include "ruFonts.h"
 #include "ssd1306.h"
-#include "time.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -302,14 +301,14 @@ static void MX_GPIO_Init(void)
 void StartReadKeyTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-  #define SCREEN_TIMEOUT 3000
+  #define SCREEN_TIMEOUT 30000
   osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
   /* Infinite loop */
   for(;;)
   {
 
 	if (HAL_GPIO_ReadPin(btn_bottom_GPIO_Port, btn_bottom_Pin) == 0) {
-	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 0, 100); else ssd1306_SetDisplayOn(1);
+	    if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 0, 100);
 	    while(HAL_GPIO_ReadPin(btn_bottom_GPIO_Port, btn_bottom_Pin) == 0)
 	    {
 		    osDelay(1);
@@ -317,7 +316,7 @@ void StartReadKeyTask(void const * argument)
 	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_top_GPIO_Port, btn_top_Pin) == 0) {
-	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 1, 100); else ssd1306_SetDisplayOn(1);
+	    if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 1, 100);
 	    while(HAL_GPIO_ReadPin(btn_top_GPIO_Port, btn_top_Pin) == 0)
 	    {
 		    osDelay(1);
@@ -325,7 +324,7 @@ void StartReadKeyTask(void const * argument)
 	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin) == 0) {
-	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 2, 100); else ssd1306_SetDisplayOn(1);
+	    if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 2, 100);
 	    while(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin) == 0)
 	    {
 		    osDelay(1);
@@ -333,7 +332,7 @@ void StartReadKeyTask(void const * argument)
 	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	}
 	else if (HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin) == 0) {
-	    if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 3, 100); else ssd1306_SetDisplayOn(1);
+	    if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 3, 100);
 	    while(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin) == 0)
 	    {
 		    osDelay(1);
@@ -348,13 +347,13 @@ void StartReadKeyTask(void const * argument)
 	    }
 	    osTimerStart(screenTimeoutTimerHandle, SCREEN_TIMEOUT);
 	    if (xTimerIsTimerActive(cancelButtonHandle) != pdFALSE) {
-		if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 4, 100); else ssd1306_SetDisplayOn(1);
+		if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 4, 100);
 		//short press
 	    }
 	    osTimerStop(cancelButtonHandle);
 	}
 
-    osDelay(50);
+    osDelay(10);
   }
   /* USER CODE END 5 */
 }
@@ -466,13 +465,47 @@ void StartGuiTask(void const * argument)
 	      ssd1306_SetCursor(4,16);
 	      ssd1306_WriteString("> Задержка: ", RuFont_7x13, White);
 	      ssd1306_SetCursor(88,16);
-	      char sleepStr[3];
-	      sprintf(sleepStr, "%d", sleep);
-	      ssd1306_WriteString(sleepStr, RuFont_7x13, White);
+
+	      uint8_t min = sleep / 60;
+	      uint8_t sec = sleep % 60;
+
+	      char minStr[2];
+	      char secStr[2];
+
+	      sprintf(minStr, "%d", min);
+	      sprintf(secStr, "%d", sec);
+
+	      char timeStr[5];
+
+	      if(min <= 9)
+	      {
+		timeStr[0] = '0';
+		timeStr[1] = minStr[0];
+	      }
+	      else
+	      {
+		timeStr[0] = minStr[0];
+		timeStr[1] = timeStr[1];
+	      }
+
+	      timeStr[2] = ':';
+
+	      if(sec <= 9)
+	      {
+		timeStr[3] = '0';
+		timeStr[4] = secStr[0];
+	      }
+	      else
+	      {
+		timeStr[3] = secStr[0];
+		timeStr[4] = secStr[1];
+	      }
+
+	      ssd1306_WriteString(timeStr, RuFont_7x13, White);
 	      ssd1306_SetCursor(4,30);
 	      ssd1306_WriteString("  Угол: ", RuFont_7x13, White);
 	      ssd1306_SetCursor(56, 30);
-	      char cornerStr[3];
+	      char cornerStr[5];
 	      sprintf(cornerStr, "%d", corner);
 	      ssd1306_WriteString(cornerStr, RuFont_7x13, White);
 	   }
@@ -481,9 +514,43 @@ void StartGuiTask(void const * argument)
 	      ssd1306_SetCursor(4,16);
 	      ssd1306_WriteString("  Задержка: ", RuFont_7x13, White);
 	      ssd1306_SetCursor(88,16);
-	      char sleepStr[3];
-	      sprintf(sleepStr, "%d", sleep);
-	      ssd1306_WriteString(sleepStr, RuFont_7x13, White);
+
+	      uint8_t min = sleep / 60;
+	      uint8_t sec = sleep % 60;
+
+	      char minStr[2];
+	      char secStr[2];
+
+	      sprintf(minStr, "%d", min);
+	      sprintf(secStr, "%d", sec);
+
+	      char timeStr[5];
+
+	      if(min <= 9)
+	      {
+		timeStr[0] = '0';
+		timeStr[1] = minStr[0];
+	      }
+	      else
+	      {
+		timeStr[0] = minStr[0];
+		timeStr[1] = timeStr[1];
+	      }
+
+	      timeStr[2] = ':';
+
+	      if(sec <= 9)
+	      {
+		timeStr[3] = '0';
+		timeStr[4] = secStr[0];
+	      }
+	      else
+	      {
+		timeStr[3] = secStr[0];
+		timeStr[4] = secStr[1];
+	      }
+
+	      ssd1306_WriteString(timeStr, RuFont_7x13, White);
 	      ssd1306_SetCursor(4,30);
 	      ssd1306_WriteString("> Угол: ", RuFont_7x13, White);
 	      ssd1306_SetCursor(56, 30);
@@ -540,39 +607,49 @@ void StartGuiTask(void const * argument)
 
 	if (btnEvent.status == osEventMessage)
 	{
-		if (btnEvent.value.v == 0) { //bottom
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(30);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		} else if (btnEvent.value.v == 1) { //top
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(30);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		} else if (btnEvent.value.v == 2) { //left
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(30);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		} else if (btnEvent.value.v == 3) { //right
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(30);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		} else if (btnEvent.value.v == 4) { //ok
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(50);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-			osDelay(50);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(30);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		} else if (btnEvent.value.v == 5) { //cancel
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-			osDelay(250);
-			HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		}
+	  if (btnEvent.value.v == 0) { //bottom
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(30);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 1) { //top
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(30);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 2) { //left
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(30);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 3) { //right
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(30);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 4) { //ok
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(50);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+		  osDelay(50);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(30);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 5) { //cancel
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(250);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 6) { //cancel
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(100);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+		  osDelay(100);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
+		  osDelay(100);
+		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+		  ssd1306_SetDisplayOn(1);
+	  }
+
 	}
 
 	ssd1306_UpdateScreen();
-	osDelay(30);//
+	osDelay(10);//
   }
   /* USER CODE END StartGuiTask */
 }
@@ -581,7 +658,7 @@ void StartGuiTask(void const * argument)
 void cancelButtonCallback(void const * argument)
 {
   /* USER CODE BEGIN cancelButtonCallback */
-  if (ssd1306_GetDisplayOn()==1) osMessagePut(buttonPressedQueueHandle, 5, 100); else ssd1306_SetDisplayOn(1);
+  if (ssd1306_GetDisplayOn()==0) osMessagePut(buttonPressedQueueHandle, 6, 100); else osMessagePut(buttonPressedQueueHandle, 5, 100);
   /* USER CODE END cancelButtonCallback */
 }
 
@@ -589,7 +666,7 @@ void cancelButtonCallback(void const * argument)
 void screenTimeoutCallback(void const * argument)
 {
   /* USER CODE BEGIN screenTimeoutCallback */
-  //ssd1306_SetDisplayOn(0);
+  ssd1306_SetDisplayOn(0);
   /* USER CODE END screenTimeoutCallback */
 }
 

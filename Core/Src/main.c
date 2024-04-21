@@ -635,14 +635,7 @@ void StartGuiTask(void const * argument)
 		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
 		  osDelay(250);
 		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-	  } else if (btnEvent.value.v == 6) { //cancel
-		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-		  osDelay(100);
-		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
-		  osDelay(100);
-		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 1);
-		  osDelay(100);
-		  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, 0);
+	  } else if (btnEvent.value.v == 6) { //displayUnlock
 		  ssd1306_SetDisplayOn(1);
 	  }
 

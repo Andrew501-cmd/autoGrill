@@ -59,6 +59,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define buzzer_Pin GPIO_PIN_4
 #define buzzer_GPIO_Port GPIOA
+#define drv_en_Pin GPIO_PIN_9
+#define drv_en_GPIO_Port GPIOA
+#define drv_step_Pin GPIO_PIN_10
+#define drv_step_GPIO_Port GPIOA
 #define btn_bottom_Pin GPIO_PIN_15
 #define btn_bottom_GPIO_Port GPIOA
 #define btn_left_Pin GPIO_PIN_4

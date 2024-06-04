@@ -1,8 +1,9 @@
-../Core/Src/main.c:373:6:StartReadKeyTask	8	static
-../Core/Src/main.c:440:6:StartGuiTask	104	static
-../Core/Src/main.c:762:6:screenTimeoutCallback	0	static
-../Core/Src/main.c:754:6:cancelButtonCallback	8	static
-../Core/Src/main.c:77:5:_write	12	static,ignoring_inline_asm
-../Core/Src/main.c:197:6:SystemClock_Config	88	static,ignoring_inline_asm
-../Core/Src/main.c:94:5:main	120	static,ignoring_inline_asm
-../Core/Src/main.c:773:6:Error_Handler	0	static,ignoring_inline_asm
+../Core/Src/main.c:403:6:StartReadKeyTask	8	static
+../Core/Src/main.c:470:6:StartGuiTask	96	static
+../Core/Src/main.c:837:6:screenTimeoutCallback	0	static
+../Core/Src/main.c:795:6:StartDriverTask	32	static
+../Core/Src/main.c:829:6:cancelButtonCallback	8	static
+../Core/Src/main.c:85:5:_write	12	static,ignoring_inline_asm
+../Core/Src/main.c:210:6:SystemClock_Config	88	static,ignoring_inline_asm
+../Core/Src/main.c:102:5:main	144	static,ignoring_inline_asm
+../Core/Src/main.c:848:6:Error_Handler	0	static,ignoring_inline_asm

@@ -26,6 +26,7 @@
 #include "ruFonts.h"
 #include "ssd1306.h"
 #include "stdio.h"
+#include <math.h>
 
 /* USER CODE END Includes */
 
@@ -51,11 +52,17 @@ I2C_HandleTypeDef hi2c1;
 
 osThreadId readKeyTaskHandle;
 osThreadId guiTaskHandle;
+osThreadId driverTaskHandle;
 osMessageQId buttonPressedQueueHandle;
 osTimerId cancelButtonHandle;
 osTimerId screenTimeoutTimerHandle;
 /* USER CODE BEGIN PV */
 uint16_t adcBatteryVoltage = 0;
+
+uint8_t guiState = 0; //motor settings
+uint8_t speed = 5;
+uint8_t sleep = 60;
+uint8_t corner = 45;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,6 +72,7 @@ static void MX_I2C1_Init(void);
 static void MX_ADC1_Init(void);
 void StartReadKeyTask(void const * argument);
 void StartGuiTask(void const * argument);
+void StartDriverTask(void const * argument);
 void cancelButtonCallback(void const * argument);
 void screenTimeoutCallback(void const * argument);
 
@@ -170,8 +178,13 @@ int main(void)
   osThreadDef(guiTask, StartGuiTask, osPriorityNormal, 0, 128);
   guiTaskHandle = osThreadCreate(osThread(guiTask), NULL);
 
+  /* definition and creation of driverTask */
+  osThreadDef(driverTask, StartDriverTask, osPriorityHigh, 0, 128);
+  driverTaskHandle = osThreadCreate(osThread(driverTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  osThreadSuspend(driverTaskHandle);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -334,7 +347,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, buzzer_Pin|drv_step_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(drv_en_GPIO_Port, drv_en_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : buzzer_Pin */
   GPIO_InitStruct.Pin = buzzer_Pin;
@@ -342,6 +358,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(buzzer_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : drv_en_Pin */
+  GPIO_InitStruct.Pin = drv_en_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(drv_en_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : drv_step_Pin */
+  GPIO_InitStruct.Pin = drv_step_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(drv_step_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : btn_bottom_Pin */
   GPIO_InitStruct.Pin = btn_bottom_Pin;
@@ -441,12 +471,8 @@ void StartGuiTask(void const * argument)
 {
   /* USER CODE BEGIN StartGuiTask */
   osEvent btnEvent;
-  uint8_t guiState = 0;
   uint8_t selectedMode = 0;
   uint8_t intermittentModeMenuPointer = 0;
-  uint8_t speed = 5;
-  uint8_t sleep = 60;
-  uint8_t corner = 45;
   /* Infinite loop */
 
   for(;;)
@@ -522,6 +548,7 @@ void StartGuiTask(void const * argument)
 	  }
 	  break;
 	case 1:
+	  osThreadResume(driverTaskHandle);
 	  ssd1306_SetCursor(1,1);
 	  ssd1306_WriteString("Пост. реж.", RuFont_7x13, Black);
 	  ssd1306_SetCursor(4,16);
@@ -557,10 +584,13 @@ void StartGuiTask(void const * argument)
 	      else if (btnEvent.value.v == 5)
 	    { //cancel
 		guiState = 0;
+		osThreadSuspend(driverTaskHandle);
+		HAL_GPIO_WritePin(drv_en_GPIO_Port, drv_en_Pin, 1);
 	    }
 	  }
 	  break;
 	case 2:
+	  osThreadResume(driverTaskHandle);
 	  ssd1306_SetCursor(1,1);
 	  ssd1306_WriteString("Прерыв. реж.", RuFont_7x13, Black);
 	  if(intermittentModeMenuPointer == 0)
@@ -668,6 +698,7 @@ void StartGuiTask(void const * argument)
 		intermittentModeMenuPointer = !intermittentModeMenuPointer;
 	    } else if (btnEvent.value.v == 3)
 	    {//right
+		xTaskAbortDelay(driverTaskHandle);
 		if(intermittentModeMenuPointer == 0)
 		  {
 		    if(sleep == 250)
@@ -684,6 +715,7 @@ void StartGuiTask(void const * argument)
 		  }
 	    } else if (btnEvent.value.v == 2)
 	      { //left
+		xTaskAbortDelay(driverTaskHandle);
 		if(intermittentModeMenuPointer == 0)
 		  {
 		    if(sleep == 10)
@@ -702,6 +734,9 @@ void StartGuiTask(void const * argument)
 	    else if (btnEvent.value.v == 5)
 	    { //cancel
 		guiState = 0;
+		HAL_GPIO_WritePin(drv_en_GPIO_Port, drv_en_Pin, 1);
+		osThreadSuspend(driverTaskHandle);
+
 	    }
 	  }
 	  break;
@@ -748,6 +783,46 @@ void StartGuiTask(void const * argument)
 	osDelay(10);//
   }
   /* USER CODE END StartGuiTask */
+}
+
+/* USER CODE BEGIN Header_StartDriverTask */
+/**
+* @brief Function implementing the driverTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDriverTask */
+void StartDriverTask(void const * argument)
+{
+  /* USER CODE BEGIN StartDriverTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_WritePin(drv_en_GPIO_Port, drv_en_Pin, 0);
+    if (guiState == 1)  { //Постоянный
+	HAL_GPIO_TogglePin(drv_step_GPIO_Port, drv_step_Pin);
+	osDelay(fabs(speed-11));
+    } else
+
+    if (guiState == 2)  { //Прерывистый
+      switch (corner) {
+	case 45:
+	  for (int var = 0; var < 800; var++) {
+	    HAL_GPIO_TogglePin(drv_step_GPIO_Port, drv_step_Pin);
+	    osDelay(1);
+	  }
+	  break;
+	case 90:
+	  for (int var = 0; var < 1600; var++) {
+	    HAL_GPIO_TogglePin(drv_step_GPIO_Port, drv_step_Pin);
+	    osDelay(1);
+	  }
+	  break;
+      }
+      osDelay(sleep*1000);
+    }
+  }
+  /* USER CODE END StartDriverTask */
 }
 
 /* cancelButtonCallback function */

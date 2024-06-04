@@ -1,8 +1,9 @@
-../Core/Src/main.c:373:6:StartReadKeyTask	17
-../Core/Src/main.c:440:6:StartGuiTask	36
-../Core/Src/main.c:762:6:screenTimeoutCallback	1
-../Core/Src/main.c:754:6:cancelButtonCallback	2
-../Core/Src/main.c:77:5:_write	5
-../Core/Src/main.c:197:6:SystemClock_Config	4
-../Core/Src/main.c:94:5:main	4
-../Core/Src/main.c:773:6:Error_Handler	1
+../Core/Src/main.c:403:6:StartReadKeyTask	17
+../Core/Src/main.c:470:6:StartGuiTask	40
+../Core/Src/main.c:837:6:screenTimeoutCallback	1
+../Core/Src/main.c:795:6:StartDriverTask	7
+../Core/Src/main.c:829:6:cancelButtonCallback	2
+../Core/Src/main.c:85:5:_write	5
+../Core/Src/main.c:210:6:SystemClock_Config	4
+../Core/Src/main.c:102:5:main	4
+../Core/Src/main.c:848:6:Error_Handler	1
